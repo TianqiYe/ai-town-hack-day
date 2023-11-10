@@ -34,6 +34,7 @@ export function movePlayer(
   }
   const { position } = player;
   // Close enough to current position or destination => no-op.
+  console.log('movePlayer .. ', position, destination);
   if (pointsEqual(position, destination)) {
     return;
   }
