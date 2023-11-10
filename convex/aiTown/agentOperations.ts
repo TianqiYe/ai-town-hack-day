@@ -116,9 +116,9 @@ export const agentDoSomething = internalAction({
         player: args.player,
         otherFreePlayers: args.otherFreePlayers,
       });
-      console.log('agentDoSomething', player, destination)
+      console.log('mylog agentDoSomething', player, destination)
 
-      await sleep(Math.random() * 1000);
+      await sleep(Math.random() * 10);
       await ctx.runMutation(api.aiTown.main.sendInput, {
         worldId: args.worldId,
         name: 'finishDoSomething',

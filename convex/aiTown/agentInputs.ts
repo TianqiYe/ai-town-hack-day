@@ -41,11 +41,14 @@ export const agentInputs = {
       destination: v.optional(point)
     },
     handler: (game, now, args) => {
+
+      
       const agentId = parseGameId('agents', args.agentId);
       const agent = game.world.agents.get(agentId);
       if (!agent) {
         throw new Error(`Couldn't find agent: ${agentId}`);
       }
+      console.log('mylog finishdosomething', agentId)
       if (
         !agent.inProgressOperation ||
         agent.inProgressOperation.operationId !== args.operationId

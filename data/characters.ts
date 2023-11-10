@@ -85,13 +85,13 @@ export const characters = [
     name: 'f1',
     textureUrl: '/ai-town/assets/32x32folk.png',
     spritesheetData: f1SpritesheetData,
-    speed: 0.1,
+    speed: 0.5,
   },
   {
     name: 'f2',
     textureUrl: '/ai-town/assets/32x32folk.png',
     spritesheetData: f2SpritesheetData,
-    speed: 0.1,
+    speed: 0.0,
   },
   // {
   //   name: 'f3',
