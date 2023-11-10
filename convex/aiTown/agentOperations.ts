@@ -101,21 +101,12 @@ export const agentDoSomething = internalAction({
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    const { player, agent, otherFreePlayers } = args;
-    const map = new WorldMap(args.map);
+    const { player, agent } = args;
     const now = Date.now();
     /* do something logic here , agent can initiate, no invite
       - kill
       - or find kill
     */
-
-    // Don't try to start a new conversation if we were just in one.
-    const justLeftConversation =
-      agent.lastConversation && now < agent.lastConversation + CONVERSATION_COOLDOWN;
-    // Don't try again if we recently tried to find someone to invite.
-    // const recentlyAttemptedInvite =
-    //   agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
-    const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
     // Decide whether to do an activity or wander somewhere.
     if (!player.pathfinding) {
       // find next target!
@@ -125,6 +116,8 @@ export const agentDoSomething = internalAction({
         player: args.player,
         otherFreePlayers: args.otherFreePlayers,
       });
+      console.log('agentDoSomething', player, destination)
+
       await sleep(Math.random() * 1000);
       await ctx.runMutation(api.aiTown.main.sendInput, {
         worldId: args.worldId,

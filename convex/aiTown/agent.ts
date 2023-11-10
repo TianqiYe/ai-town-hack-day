@@ -81,15 +81,18 @@ export class Agent {
     // If we aren't doing an activity or moving, do something.
     // If we have been wandering but haven't thought about something to do for
     // a while, do something.
+    console.log(`Agent ${this.id} doing something...`);
     if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
+      console.log(`Agent ${this.id} !conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)`);
+      const ofp = [...game.world.players.values()]
+      .filter((p) => p.id !== player.id)
+      .map((p) => p.serialize())
+      console.log('otherFreePlayers debug', ofp)
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
         player: player.serialize(),
         otherFreePlayers: [...game.world.players.values()]
           .filter((p) => p.id !== player.id)
-          .filter(
-            (p) => ![...game.world.conversations.values()].find((c) => c.participants.has(p.id)),
-          )
           .map((p) => p.serialize()),
         agent: this.serialize(),
         map: game.worldMap.serialize(),
@@ -109,37 +112,17 @@ export class Agent {
       delete this.toRemember;
       return;
     }
-    // if during conversation
+    // if during battle
     if (conversation && member) {
       const [otherPlayerId, otherMember] = [...conversation.participants.entries()].find(
         ([id]) => id !== player.id,
       )!;
       const otherPlayer = game.world.players.get(otherPlayerId)!;
       if (member.status.kind === 'invited') {
-        // Accept a conversation with another agent with some probability and with
-        // a human unconditionally.
-        if (otherPlayer.human || Math.random() < INVITE_ACCEPT_PROBABILITY) {
-          console.log(`Agent ${player.id} accepting invite from ${otherPlayer.id}`);
-          conversation.acceptInvite(game, player); // change status to walking over
-          // Stop moving so we can start walking towards the other player.
-          if (player.pathfinding) {
-            delete player.pathfinding;
-          }
-        } else {
-          console.log(`Agent ${player.id} rejecting invite from ${otherPlayer.id}`);
-          conversation.rejectInvite(game, now, player);
-        }
         return;
       }
       // if the player is walking over some one
       if (member.status.kind === 'walkingOver') {
-
-        // Leave a conversation if we've been waiting for too long.
-        if (member.invited + INVITE_TIMEOUT < now) {
-          console.log(`Giving up on invite to ${otherPlayer.id}`);
-          conversation.leave(game, now, player);
-          return;
-        }
 
         // Don't keep moving around if we're near enough.
         const playerDistance = distance(player.position, otherPlayer.position);
@@ -352,22 +335,27 @@ export const findConversationCandidate = internalQuery({
   handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
     const { position } = player;
     const candidates = [];
+    console.log('otherFreePlayers', otherFreePlayers)
 
     for (const otherPlayer of otherFreePlayers) {
+      console.log(`Considering ${otherPlayer.position.x} ${otherPlayer.position.y}...`);
       // Find the latest conversation we're both members of.
-      const lastMember = await ctx.db
-        .query('participatedTogether')
-        .withIndex('edge', (q) =>
-          q.eq('worldId', worldId).eq('player1', player.id).eq('player2', otherPlayer.id),
-        )
-        .order('desc')
-        .first();
-      if (lastMember) {
-        if (now < lastMember.ended + PLAYER_CONVERSATION_COOLDOWN) {
-          continue;
-        }
+      // const lastMember = await ctx.db
+      //   .query('participatedTogether')
+      //   .withIndex('edge', (q) =>
+      //     q.eq('worldId', worldId).eq('player1', player.id).eq('player2', otherPlayer.id),
+      //   )
+      //   .order('desc')
+      //   .first();
+      // if (lastMember) {
+      //   if (now < lastMember.ended + PLAYER_CONVERSATION_COOLDOWN) {
+      //     continue;
+      //   }
+      // }
+      if (player.id == otherPlayer.id) {
+        continue;
       }
-      candidates.push({ id: otherPlayer.id, position });
+      candidates.push({ id: otherPlayer.id, position: otherPlayer.position });
     }
 
     // Sort by distance and take the nearest candidate.
