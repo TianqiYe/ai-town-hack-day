@@ -34,12 +34,11 @@ export const agentInputs = {
     },
   }),
   finishDoSomething: inputHandler({
+    // reduce only option to just move for now
     args: {
       operationId: v.string(),
       agentId: v.id('agents'),
-      destination: v.optional(point),
-      invitee: v.optional(v.id('players')),
-      activity: v.optional(activity),
+      destination: v.optional(point)
     },
     handler: (game, now, args) => {
       const agentId = parseGameId('agents', args.agentId);
@@ -56,21 +55,11 @@ export const agentInputs = {
       }
       delete agent.inProgressOperation;
       const player = game.world.players.get(agent.playerId)!;
-      if (args.invitee) {
-        const inviteeId = parseGameId('players', args.invitee);
-        const invitee = game.world.players.get(inviteeId);
-        if (!invitee) {
-          throw new Error(`Couldn't find player: ${inviteeId}`);
-        }
-        Conversation.start(game, now, player, invitee);
-        agent.lastInviteAttempt = now;
-      }
+
       if (args.destination) {
         movePlayer(game, now, player, args.destination);
       }
-      if (args.activity) {
-        player.activity = args.activity;
-      }
+
       return null;
     },
   }),

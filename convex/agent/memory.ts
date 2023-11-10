@@ -1,3 +1,4 @@
+import { defineTable } from 'convex/server';
 import { v } from 'convex/values';
 import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
 import { Doc, Id } from '../_generated/dataModel';
@@ -6,18 +7,41 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/openai';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
-import { UseOllama, ollamaChatCompletion } from '../util/ollama';
-import { memoryFields } from './schema';
-
-const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
 // We fetch 10x the number of memories by relevance, to have more candidates
 // for sorting by relevance + recency + importance.
 const MEMORY_OVERFETCH = 10;
+
 const selfInternal = internal.agent.memory;
 
+const memoryFields = {
+  playerId,
+  description: v.string(),
+  embeddingId: v.id('memoryEmbeddings'),
+  importance: v.number(),
+  lastAccess: v.number(),
+  data: v.union(
+    // Setting up dynamics between players
+    v.object({
+      type: v.literal('relationship'),
+      // The player this memory is about, from the perspective of the player
+      // whose memory this is.
+      playerId,
+    }),
+    v.object({
+      type: v.literal('conversation'),
+      conversationId,
+      // The other player(s) in the conversation.
+      playerIds: v.array(playerId),
+    }),
+    v.object({
+      type: v.literal('reflection'),
+      relatedMemoryIds: v.array(v.id('memories')),
+    }),
+  ),
+};
 export type Memory = Doc<'memories'>;
 export type MemoryType = Memory['data']['type'];
 export type MemoryOfType<T extends MemoryType> = Omit<Memory, 'data'> & {
@@ -46,9 +70,9 @@ export async function rememberConversation(
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
-      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
-      like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
-      "I," and add if you liked or disliked this interaction.`,
+      content: `You are ${player.name}, and you just finished a battle with ${otherPlayer.name}. I would
+      like you to summarize the battle from ${player.name}'s perspective, using first-person pronouns like
+      "I," and add what you learned from the battle experience.`,
     },
   ];
   const authors = new Set<GameId<'players'>>();
@@ -62,11 +86,11 @@ export async function rememberConversation(
     });
   }
   llmMessages.push({ role: 'user', content: 'Summary:' });
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 500,
   });
-  const description = `Conversation with ${otherPlayer.name} at ${new Date(
+  const description = `Battle with ${otherPlayer.name} at ${new Date(
     data.conversation._creationTime,
   ).toLocaleString()}: ${content}`;
   const importance = await calculateImportance(description);
@@ -243,13 +267,13 @@ export const loadMessages = internalQuery({
 });
 
 async function calculateImportance(description: string) {
-  const { content: importanceRaw } = await completionFn({
+  const { content: importanceRaw } = await chatCompletion({
     messages: [
       {
         role: 'user',
         content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
-      Memory: ${description}
-      Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
+        Memory: ${description}
+        Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
       },
     ],
     temperature: 0.0,
@@ -447,3 +471,18 @@ export async function latestMemoryOfType<T extends MemoryType>(
   if (!entry) return null;
   return entry as MemoryOfType<T>;
 }
+
+export const memoryTables = {
+  memories: defineTable(memoryFields)
+    .index('embeddingId', ['embeddingId'])
+    .index('playerId_type', ['playerId', 'data.type'])
+    .index('playerId', ['playerId']),
+  memoryEmbeddings: defineTable({
+    playerId,
+    embedding: v.array(v.float64()),
+  }).vectorIndex('embedding', {
+    vectorField: 'embedding',
+    filterFields: ['playerId'],
+    dimensions: 1536,
+  }),
+};

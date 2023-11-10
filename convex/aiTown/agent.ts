@@ -50,27 +50,33 @@ export class Agent {
   }
 
   tick(game: Game, now: number) {
+    // check current player tick
     const player = game.world.players.get(this.playerId);
     if (!player) {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
+    // if current in action
     if (this.inProgressOperation) {
-      if (now < this.inProgressOperation.started + ACTION_TIMEOUT()) {
+      if (now < this.inProgressOperation.started + ACTION_TIMEOUT) {
         // Wait on the operation to finish.
         return;
       }
       console.log(`Timing out ${JSON.stringify(this.inProgressOperation)}`);
       delete this.inProgressOperation;
     }
+    // retrieve the battle values
     const conversation = game.world.playerConversation(player);
     const member = conversation?.participants.get(player.id);
 
+    // retrieve recent activities? 
     const recentlyAttemptedInvite =
       this.lastInviteAttempt && now < this.lastInviteAttempt + CONVERSATION_COOLDOWN;
     const doingActivity = player.activity && player.activity.until > now;
     if (doingActivity && (conversation || player.pathfinding)) {
       player.activity!.until = now;
     }
+
+    // do something logic blow
     // If we're not in a conversation, do something.
     // If we aren't doing an activity or moving, do something.
     // If we have been wandering but haven't thought about something to do for
@@ -93,7 +99,7 @@ export class Agent {
     // Check to see if we have a conversation we need to remember.
     if (this.toRemember) {
       // Fire off the action to remember the conversation.
-      console.log(`Agent ${this.id} remembering conversation ${this.toRemember}`);
+      console.log(`Agent ${this.id} remembering event ${this.toRemember}`);
       this.startOperation(game, now, 'agentRememberConversation', {
         worldId: game.worldId,
         playerId: this.playerId,
@@ -103,6 +109,7 @@ export class Agent {
       delete this.toRemember;
       return;
     }
+    // if during conversation
     if (conversation && member) {
       const [otherPlayerId, otherMember] = [...conversation.participants.entries()].find(
         ([id]) => id !== player.id,
@@ -113,7 +120,7 @@ export class Agent {
         // a human unconditionally.
         if (otherPlayer.human || Math.random() < INVITE_ACCEPT_PROBABILITY) {
           console.log(`Agent ${player.id} accepting invite from ${otherPlayer.id}`);
-          conversation.acceptInvite(game, player);
+          conversation.acceptInvite(game, player); // change status to walking over
           // Stop moving so we can start walking towards the other player.
           if (player.pathfinding) {
             delete player.pathfinding;
@@ -124,7 +131,9 @@ export class Agent {
         }
         return;
       }
+      // if the player is walking over some one
       if (member.status.kind === 'walkingOver') {
+
         // Leave a conversation if we've been waiting for too long.
         if (member.invited + INVITE_TIMEOUT < now) {
           console.log(`Giving up on invite to ${otherPlayer.id}`);
@@ -158,6 +167,7 @@ export class Agent {
         }
         return;
       }
+      // during conversations
       if (member.status.kind === 'participating') {
         const started = member.status.started;
         if (conversation.isTyping && conversation.isTyping.playerId !== player.id) {
@@ -362,6 +372,6 @@ export const findConversationCandidate = internalQuery({
 
     // Sort by distance and take the nearest candidate.
     candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
-    return candidates[0]?.id;
+    return candidates[0]?.position;
   },
 });

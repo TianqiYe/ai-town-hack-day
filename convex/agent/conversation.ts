@@ -1,18 +1,15 @@
 import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
-import { LLMMessage, chatCompletion, ChatCompletionContent } from '../util/openai';
-import { UseOllama, ollamaChatCompletion } from '../util/ollama';
+import { LLMMessage, chatCompletion } from '../util/openai';
 import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
-import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
-const completionFn = UseOllama ? ollamaChatCompletion : chatCompletion;
 
-export async function startConversationMessage(
+export async function startAttackMessage(
   ctx: ActionCtx,
   worldId: Id<'worlds'>,
   conversationId: GameId<'conversations'>,
@@ -32,31 +29,29 @@ export async function startConversationMessage(
     ctx,
     `What do you think about ${otherPlayer.name}?`,
   );
-
-  const memories = await memory.searchMemories(
-    ctx,
-    player.id as GameId<'players'>,
-    embedding,
-    NUM_MEMORIES_TO_SEARCH(),
-  );
-
+  const memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, 3);
   const memoryWithOtherPlayer = memories.find(
     (m) => m.data.type === 'conversation' && m.data.playerIds.includes(otherPlayerId),
   );
   const prompt = [
-    `You are ${player.name}, and you just started a conversation with ${otherPlayer.name}.`,
+    `You are ${player.name}, and you are fighting with ${otherPlayer.name}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
-  prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
+  // prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
   prompt.push(...relatedMemoriesPrompt(memories));
-  if (memoryWithOtherPlayer) {
-    prompt.push(
-      `Be sure to include some detail or question about a previous conversation in your greeting.`,
-    );
+  // if (memoryWithOtherPlayer) {
+  //   prompt.push(
+  //     `Be sure to include some detail or question about a previous conversation in your greeting.`,
+  //   );
+  // }
+  prompt.push(`Given the infomation above, return the battle scene, the battle result should be in JSON format. \n for example : 
+  {
+    "player1" : "The player1 raises his huge machete, using it as a shield against the human bullets, he disarms the player2",
+    "player2" : " player2 rifle flying across the battlefield. player2 start to run"
   }
-  prompt.push(`${player.name}:`);
+`);
 
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: [
       {
         role: 'user',
@@ -64,8 +59,7 @@ export async function startConversationMessage(
       },
     ],
     max_tokens: 300,
-    stream: true,
-    stop: stopWords(otherPlayer.name, player.name),
+    stream: true
   });
   return content;
 }
@@ -118,8 +112,7 @@ export async function continueConversationMessage(
     )),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
     stream: true,
@@ -167,8 +160,7 @@ export async function leaveConversationMessage(
     )),
   ];
   llmMessages.push({ role: 'user', content: `${player.name}:` });
-
-  const { content } = await completionFn({
+  const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 300,
     stream: true,
@@ -185,10 +177,10 @@ function agentPrompts(
   const prompt = [];
   if (agent) {
     prompt.push(`About you: ${agent.identity}`);
-    prompt.push(`Your goals for the conversation: ${agent.plan}`);
   }
   if (otherAgent) {
     prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}`);
+    prompt.push(`Your goals is to fight with ${otherPlayer.name}, if you have chance to kill ${otherPlayer.name}, kill ${otherPlayer.name}. If you are in danger, run.`);
   }
   return prompt;
 }
@@ -202,8 +194,7 @@ function previousConversationPrompt(
     const prev = new Date(conversation.created);
     const now = new Date();
     prompt.push(
-      `Last time you chatted with ${
-        otherPlayer.name
+      `Last time you chatted with ${otherPlayer.name
       } it was ${prev.toLocaleString()}. It's now ${now.toLocaleString()}.`,
     );
   }
