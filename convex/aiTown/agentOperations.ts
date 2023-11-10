@@ -108,14 +108,18 @@ export const agentDoSomething = internalAction({
       - or find kill
     */
     // Decide whether to do an activity or wander somewhere.
+    // iteraction target
+    const candidateId = await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
+      now,
+      worldId: args.worldId,
+      player: args.player,
+      otherFreePlayers: args.otherFreePlayers,
+    });
+    console.log('player.pathfinding', player.pathfinding)
+
     if (!player.pathfinding) {
       // find next target!
-      const destination = await ctx.runQuery(internal.aiTown.agent.findConversationCandidate, {
-        now,
-        worldId: args.worldId,
-        player: args.player,
-        otherFreePlayers: args.otherFreePlayers,
-      });
+      const destination = args.otherFreePlayers.find((p) => p.id === candidateId)?.position;
       console.log('agentDoSomething', player, destination)
 
       await sleep(Math.random() * 1000);
@@ -130,6 +134,17 @@ export const agentDoSomething = internalAction({
       });
       return;
     }
+    console.log('agentDoSomething looking for', candidateId )
+    await sleep(Math.random() * 1000);
+    await ctx.runMutation(api.aiTown.main.sendInput, {
+      worldId: args.worldId,
+      name: 'finishDoSomething',
+      args: {
+        operationId: args.operationId,
+        agentId: args.agent.id,
+        attentee: candidateId
+      },
+    });
   },
 });
 

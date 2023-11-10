@@ -81,13 +81,13 @@ export class Agent {
     // If we aren't doing an activity or moving, do something.
     // If we have been wandering but haven't thought about something to do for
     // a while, do something.
-    console.log(`Agent ${this.id} doing something...`);
+    // console.log(`Agent ${this.id} doing something...`);
     if (!conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)) {
-      console.log(`Agent ${this.id} !conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)`);
+      // console.log(`Agent ${this.id} !conversation && !doingActivity && (!player.pathfinding || !recentlyAttemptedInvite)`);
       const ofp = [...game.world.players.values()]
       .filter((p) => p.id !== player.id)
       .map((p) => p.serialize())
-      console.log('otherFreePlayers debug', ofp)
+      // console.log('otherFreePlayers debug', ofp)
       this.startOperation(game, now, 'agentDoSomething', {
         worldId: game.worldId,
         player: player.serialize(),
@@ -360,6 +360,6 @@ export const findConversationCandidate = internalQuery({
 
     // Sort by distance and take the nearest candidate.
     candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
-    return candidates[0]?.position;
+    return candidates[0]?.id;
   },
 });
