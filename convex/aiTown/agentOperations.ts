@@ -70,14 +70,14 @@ export const agentGenerateMessage = internalAction({
   },
   handler: async (ctx, args) => {
     // let completionFn = startAttackMessage;
-    const completion = await startAttackMessage(
+    const {content, functionCallName} = await startAttackMessage(
       ctx,
       args.worldId,
       args.conversationId as GameId<'conversations'>,
       args.playerId as GameId<'players'>,
       args.otherPlayerId as GameId<'players'>,
     );
-    const text = await completion.readAll();
+    const text = content;
     await ctx.runMutation(internal.aiTown.agent.agentSendMessage, {
       worldId: args.worldId,
       conversationId: args.conversationId,

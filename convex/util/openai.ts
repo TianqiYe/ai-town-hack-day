@@ -1,5 +1,16 @@
 // That's right! No imports and no dependencies 🤯
 
+type chatCompletionMetaData = {
+  retries: number;
+  ms: number;
+  function_call?: {name: string, arguments: string};
+  usage:  {
+    completion_tokens: number;
+    prompt_tokens: number;
+    total_tokens: number;
+  } | undefined
+};
+
 // Overload for non-streaming
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
@@ -7,7 +18,7 @@ export async function chatCompletion(
   } & {
     stream?: false | null | undefined;
   },
-): Promise<{ content: string; retries: number; ms: number }>;
+): Promise<chatCompletionMetaData & { content: string }>;
 // Overload for streaming
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
@@ -15,19 +26,20 @@ export async function chatCompletion(
   } & {
     stream?: true;
   },
-): Promise<{ content: ChatCompletionContent; retries: number; ms: number }>;
+): Promise<chatCompletionMetaData & { content: ChatCompletionContent}>;
 export async function chatCompletion(
   body: Omit<CreateChatCompletionRequest, 'model'> & {
     model?: CreateChatCompletionRequest['model'];
+  } & {
+    stream?: boolean | null | undefined;
   },
-) {
+): Promise<chatCompletionMetaData & { content: string | ChatCompletionContent }> {
   checkForAPIKey();
-
   body.model = body.model ?? 'gpt-3.5-turbo-16k';
   const openaiApiBase = process.env.OPENAI_API_BASE || 'https://api.openai.com';
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   const {
-    result: content,
+    result,
     retries,
     ms,
   } = await retryWithBackoff(async () => {
@@ -50,21 +62,31 @@ export async function chatCompletion(
       };
     }
     if (body.stream) {
-      return new ChatCompletionContent(result.body!, stopWords);
+      return {
+        content: new ChatCompletionContent(result.body!, stopWords),
+        usage: undefined,
+        function_call: undefined
+      };
     } else {
       const json = (await result.json()) as CreateChatCompletionResponse;
       const content = json.choices[0].message?.content;
+      const function_call = json.choices[0].message?.function_call;
       if (content === undefined) {
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
       }
-      return content;
+      return {
+        content,
+        usage: json.usage,
+        function_call,
+      };
     }
   });
-
   return {
-    content,
+    content: result.content,
     retries,
     ms,
+    usage: result.usage,
+    function_call: result.function_call,
   };
 }
 
@@ -105,7 +127,7 @@ export async function fetchEmbeddingBatch(texts: string[]) {
   allembeddings.sort((a, b) => a.index - b.index);
   return {
     embeddings: allembeddings.map(({ embedding }) => embedding),
-    usage: json.usage.total_tokens,
+    usage: json.usage,
     retries,
     ms,
   };
@@ -236,6 +258,10 @@ interface CreateChatCompletionResponse {
     message?: {
       role: 'system' | 'user' | 'assistant';
       content: string;
+      function_call?: {
+        name: string;
+        arguments: string;
+      };
     };
     finish_reason?: string;
   }[];

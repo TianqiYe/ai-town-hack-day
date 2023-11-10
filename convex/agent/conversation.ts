@@ -6,6 +6,8 @@ import * as memory from './memory';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
+import { getAvailableFunctions } from '../util/llmFunctions';
+import { chatCompletionWithLogging } from '../util/chatCompletion';
 
 const selfInternal = internal.agent.conversation;
 
@@ -51,7 +53,9 @@ export async function startAttackMessage(
   }
 `);
 
-  const { content } = await chatCompletion({
+  const availableFunctions = getAvailableFunctions();
+
+  const { content, functionCallName } = await chatCompletionWithLogging({
     messages: [
       {
         role: 'user',
@@ -59,9 +63,12 @@ export async function startAttackMessage(
       },
     ],
     max_tokens: 300,
-    stream: true
+    stream: false,
+    functions: availableFunctions
   });
-  return content;
+
+  console.log(content);
+  return {content, functionCallName};
 }
 
 export async function continueConversationMessage(
