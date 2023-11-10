@@ -19,7 +19,7 @@ export const Descriptions = [
   // },
   {
     name: 'Lucky',
-    character: 'f 1',
+    character: 'f1',
     identity: `Lucky is always happy and curious, and he loves cheese. He spends
       most of his time reading about the history of science and traveling
       through the galaxy on whatever ship will take him. He's very articulate and
