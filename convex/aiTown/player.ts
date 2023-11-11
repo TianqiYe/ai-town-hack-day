@@ -53,6 +53,7 @@ export const serializedPlayer = {
   position: point,
   facing: vector,
   speed: v.number(),
+  maxSpeed: v.number(),
 };
 export type SerializedPlayer = ObjectType<typeof serializedPlayer>;
 
@@ -67,9 +68,10 @@ export class Player {
   position: Point;
   facing: Vector;
   speed: number;
+  maxSpeed: number;
 
   constructor(serialized: SerializedPlayer) {
-    const { id, human, pathfinding, activity, lastInput, position, facing, speed } = serialized;
+    const { id, human, pathfinding, activity, lastInput, position, facing, speed, maxSpeed } = serialized;
     this.id = parseGameId('players', id);
     this.human = human;
     this.pathfinding = pathfinding;
@@ -78,6 +80,7 @@ export class Player {
     this.position = position;
     this.facing = facing;
     this.speed = speed;
+    this.maxSpeed = maxSpeed;
   }
 
   tick(game: Game, now: number) {
@@ -166,6 +169,7 @@ export class Player {
     name: string,
     character: string,
     description: string,
+    maxSpeed: number,
     tokenIdentifier?: string,
   ) {
     if (tokenIdentifier) {
@@ -217,6 +221,7 @@ export class Player {
         position,
         facing,
         speed: 0,
+        maxSpeed: maxSpeed,
       }),
     );
     game.playerDescriptions.set(
@@ -244,7 +249,7 @@ export class Player {
   }
 
   serialize(): SerializedPlayer {
-    const { id, human, pathfinding, activity, lastInput, position, facing, speed } = this;
+    const { id, human, pathfinding, activity, lastInput, position, facing, speed, maxSpeed } = this;
     return {
       id,
       human,
@@ -254,6 +259,7 @@ export class Player {
       position,
       facing,
       speed,
+      maxSpeed,
     };
   }
 }
