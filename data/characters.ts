@@ -27,6 +27,7 @@ export const Descriptions = [
       Lucky has just returned from an amazing space adventure to explore a distant planet
       and he's very excited to tell people about it.`,
     plan: 'You want to hear all the gossip.',
+    maxSpeed: 0.0,
   },
   // {
   //   name: 'Bob',
@@ -52,6 +53,7 @@ export const Descriptions = [
       computers and politics and history and biology. He loves talking about
       everything, always injecting fun facts about the topic of discussion.`,
     plan: 'You want to spread knowledge.',
+    maxSpeed: 1.0,
   },
   // {
   //   name: 'Alice',
@@ -91,7 +93,7 @@ export const characters = [
     name: 'f2',
     textureUrl: '/ai-town/assets/32x32folk.png',
     spritesheetData: f2SpritesheetData,
-    speed: 0.0,
+    speed: 0.5,
   },
   // {
   //   name: 'f3',

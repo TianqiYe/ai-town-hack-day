@@ -99,7 +99,7 @@ export function findRoute(game: Game, now: number, player: Player, destination: 
         position,
         facing,
         // Movement speed is in tiles per second.
-        t: current.t + (segmentLength / movementSpeed) * 1000,
+        t: current.t + (segmentLength / player.maxSpeed) * 1000,
         length,
         cost: length + remaining,
         prev: current,

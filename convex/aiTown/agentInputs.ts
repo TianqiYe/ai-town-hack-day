@@ -130,6 +130,7 @@ export const agentInputs = {
         description.name,
         description.character,
         description.identity,
+        description.maxSpeed,
       );
       const agentId = game.allocId('agents');
       game.world.agents.set(
