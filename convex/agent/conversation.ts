@@ -55,7 +55,7 @@ export async function startAttackMessage(
 
   const availableFunctions = getAvailableFunctions();
 
-  const { content, functionCallName } = await chatCompletionWithLogging({
+  const { content } = await chatCompletion({
     messages: [
       {
         role: 'user',
@@ -63,12 +63,13 @@ export async function startAttackMessage(
       },
     ],
     max_tokens: 300,
-    stream: false,
+    stream: true,
+    stop: stopWords(otherPlayer.name, player.name),
     functions: availableFunctions
   });
 
   console.log(content);
-  return {content, functionCallName};
+  return content;
 }
 
 export async function continueConversationMessage(
