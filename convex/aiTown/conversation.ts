@@ -65,7 +65,7 @@ export class Conversation {
 
     // If the players are both in the "walkingOver" state and they're sufficiently close, transition both
     // of them to "participating" and stop their paths.
-    if (member1.status.kind === 'walkingOver' && member2.status.kind === 'walkingOver') {
+    if (member1.status.kind === 'walkingOver' || member2.status.kind === 'walkingOver') {
       if (playerDistance < CONVERSATION_DISTANCE) {
         console.log(`Starting conversation between ${player1.id} and ${player2.id}`);
 

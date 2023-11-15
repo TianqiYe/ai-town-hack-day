@@ -48,14 +48,15 @@ export async function startAttackMessage(
   // }
   prompt.push(`Given the infomation above, return the battle scene, the battle result should be in JSON format. \n for example : 
   {
-    "player1" : "The player1 raises his huge machete, using it as a shield against the human bullets, he disarms the player2",
-    "player2" : " player2 rifle flying across the battlefield. player2 start to run"
+    player1 : The player1 raises his huge machete, using it as a shield against the human bullets, he disarms the player2,
+    player2 : player2 rifle flying across the battlefield. player2 start to run
   }
 `);
 
   const availableFunctions = getAvailableFunctions();
-
-  const { content, functionCallName } = await chatCompletionWithLogging({
+  console.log('availableFunctions', availableFunctions);
+  console.log('prompt', prompt);
+  const { content } = await chatCompletion({
     messages: [
       {
         role: 'user',
@@ -63,12 +64,13 @@ export async function startAttackMessage(
       },
     ],
     max_tokens: 300,
-    stream: false,
+    stream: true,
+    stop: stopWords(otherPlayer.name, player.name),
     functions: availableFunctions
   });
 
-  console.log(content);
-  return {content, functionCallName};
+  console.log('content return', content);
+  return content;
 }
 
 export async function continueConversationMessage(

@@ -9,8 +9,10 @@ type LLMModel = 'gpt-4-0613' | 'gpt-4' | 'gpt-4-32k' | 'gpt-4-32k-0613' | 'gpt-3
 export const chatCompletionWithLogging = async (params: chatCompletionWithLoggingRequest) => {
   const {stop, ...chatCompletionRequest} = params; 
   //const chatCompletionRequest = params as Omit<CreateChatCompletionRequest, 'model'>;
-  const model: LLMModel = process.env.LLM_MODEL_ID as LLMModel;
+  const model: LLMModel = 'gpt-3.5-turbo';
+  console.log('chatCompletionWithLogging', chatCompletionRequest);
   const response = await chatCompletion({...chatCompletionRequest, model, stream: false, stop: []}); // set stream to false
+  console.log('chatCompletionWithLogging', response);
   // remove stop words if it starts with them
   let responseContent = response.content;
   let logged_response_content = response.content;

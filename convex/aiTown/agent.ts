@@ -113,6 +113,7 @@ export class Agent {
       return;
     }
     // if during battle
+    console.log(`Agent ${this.id} during battle now ...`, conversation, member);
     if (conversation && member) {
       const [otherPlayerId, otherMember] = [...conversation.participants.entries()].find(
         ([id]) => id !== player.id,
@@ -127,6 +128,7 @@ export class Agent {
         // Don't keep moving around if we're near enough.
         const playerDistance = distance(player.position, otherPlayer.position);
         if (playerDistance < CONVERSATION_DISTANCE) {
+          
           return;
         }
 
@@ -335,10 +337,10 @@ export const findConversationCandidate = internalQuery({
   handler: async (ctx, { now, worldId, player, otherFreePlayers }) => {
     const { position } = player;
     const candidates = [];
-    console.log('otherFreePlayers', otherFreePlayers)
+    // console.log('otherFreePlayers', otherFreePlayers)
 
     for (const otherPlayer of otherFreePlayers) {
-      console.log(`Considering ${otherPlayer.position.x} ${otherPlayer.position.y}...`);
+      // console.log(`Considering ${otherPlayer.position.x} ${otherPlayer.position.y}...`);
       // Find the latest conversation we're both members of.
       // const lastMember = await ctx.db
       //   .query('participatedTogether')
